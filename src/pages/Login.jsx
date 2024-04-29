@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 import { store } from "../store";
 import { loginUser, logoutUser } from "../features/auth/authSlice";
+import { CallApi } from "../callApi";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -22,7 +23,6 @@ const Login = () => {
 
   const isValidate = () => {
     let isProceed = true;
-
     if (email.length === 0) {
       isProceed = false;
       toast.warn("Please enter a email");
@@ -33,28 +33,32 @@ const Login = () => {
     return isProceed;
   };
 
-  const proceedLogin = (e) => {
+  const proceedLogin = async (e) => {
     e.preventDefault();
+    
     if (isValidate()) {
-      fetch("http://localhost:8080/user")
-        .then((res) => res.json())
-        .then((res) => {
-          let data = res;
-          const foundUser = data.filter(
-            (item) => item.email === email && item.password === password
-          );
-          if (foundUser[0]) {
-            toast.success("Login successful");
-            localStorage.setItem("id", foundUser[0].id);
-            store.dispatch(loginUser());
-            navigate("/");
-          } else {
-            toast.warn("Email or password is incorrect");
-          }
-        })
-        .catch((err) => {
-          toast.error("Login failed due to: " + err.message);
-        });
+      try {
+        const requestData = {
+          username: email,
+          password: password,
+          // driver_mobile_number: '8018364674',
+        };
+        console.log(requestData,'my requestdata');
+        const response = await CallApi("POST", "auth/login", requestData);
+        console.log(response,'mynewpageresponse--->>>>');
+        
+        if (response.status === 1) {
+          toast.success("Login successful");
+          localStorage.setItem("userId", response.userId);
+          localStorage.setItem("token", response.token);
+          store.dispatch(loginUser());
+          navigate("/");
+        } else {
+          toast.warn("Email or password is incorrect");
+        }
+      } catch (error) {
+        console.error("There was an error!", error);
+      }
     }
   };
 
@@ -72,7 +76,7 @@ const Login = () => {
                 value={email}
                 required={true}
                 onChange={(e) => setEmail(e.target.value)}
-                type="email"
+                type="username"
                 className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"
               />
               <label className="font-semibold text-sm pb-1 block text-accent-content">
@@ -112,7 +116,7 @@ const Login = () => {
               to="/register"
               className="btn btn-neutral text-white"
               onClick={() => window.scrollTo(0, 0)}
-            >
+            > 
               Don't have an account? Please register.
             </Link>
           </div>
